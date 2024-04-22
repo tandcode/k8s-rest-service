@@ -1,0 +1,13 @@
+FROM ghcr.io/graalvm/native-image-community:21-muslib as builder
+WORKDIR ../sources
+COPY .. /sources
+RUN ./mvnw -e --no-transfer-progress native:compile -Pnative
+
+FROM docker.io/alpine:3.19 as archiver
+COPY --from=builder /sources/target/k8s-rest-service /opt/app
+RUN apk update && apk add upx
+RUN upx /opt/app
+
+FROM docker.io/alpine:3.19
+COPY --from=archiver /opt/app .
+ENTRYPOINT ["./app"]
